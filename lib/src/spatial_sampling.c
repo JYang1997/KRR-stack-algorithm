@@ -45,7 +45,7 @@ void fixed_rate_spatial_sampling (FILE* 	rfd,
 	uint64_t total = strtoull(keyStr, NULL, 10);
 
 	progress_bar_t* bar;
-	progress_bar_init(total, &bar);
+	PROGRESS_BAR_INIT(total, &bar);
 
 
 	uint64_t actualGetCnt = 0;
@@ -88,7 +88,7 @@ void fixed_rate_spatial_sampling (FILE* 	rfd,
 		}
 		
 
-		progress_bar_update(bar);
+		PROGRESS_BAR_UPDATE(bar);
 		
 	}
 
@@ -124,32 +124,22 @@ void tw_fixed_rate_spatial_sampling(char* fileName,
 	
 	fprintf(stderr,"seed: %u\n",seed );
 
-	//*************count number of line in file*************
-	FILE* rfd;
-	if((rfd = fopen(fileName,"r")) == NULL)
-	{ perror("open error for read"); return -1; }
-	
-	uint64_t total = 0;
 
-	ssize_t read;
-	char* line = NULL;
-	size_t len = 0;
-	while ((read = getline(&line, &len, itr->rfd)) != NULL) {
-		total++;
-	}
-	free(line);
-	//*******************************************************
+	uint64_t total = 0;
+	COUNT_FILE_LINE(fileName, &total);
 
 	progress_bar_t* bar;
-	progress_bar_init(total, &bar);
+	PROGRESS_BAR_INIT(total, &bar);
 
 
 	char* commandStr = NULL;
 
 
-	tw_itrator_t* itr = init_tw_trace(fileName, 10000);
+	tw_iterator_t* itr = tw_trace_init(fileName, 10000, CONTINUE);
 	tw_ref_t* ref = NULL;
 
+	uint32_t size;
+	int64_t sd;
 	uint64_t actualGetCnt = 0;
 	uint64_t hash[2];     
 	uint64_t P = 1;
@@ -209,7 +199,7 @@ void tw_fixed_rate_spatial_sampling(char* fileName,
 		}
 		
 
-		progress_bar_update(bar);
+		PROGRESS_BAR_UPDATE(bar);
 		
 	}
 

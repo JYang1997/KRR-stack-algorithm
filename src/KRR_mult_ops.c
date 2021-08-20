@@ -1,12 +1,11 @@
-#include "random_stack.h"
+#include "KRR_mult_ops.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <time.h>
 #include <stdio.h>
 #include <string.h>
 #include "murmur3.h"
-#include "pcg_variants.h"
-#include "entropy.h"
+#include "utils.h"
 #include <math.h>
 
 
@@ -76,8 +75,10 @@ static void updateTotSizeArray(KRR_Stack_t* stack, uint64_t low, uint64_t high, 
  * @return  KRR_stack
  **/
 KRR_Stack_t* stackInit(uint32_t k) {
-	KRR_Stack_t* stack = malloc(sizeof(KRR_Stack_t));
 	
+	jy_64_srandom();
+	
+	KRR_Stack_t* stack = malloc(sizeof(KRR_Stack_t));
 	
 	stack->totalGet = 0;
 	stack->totalSet = 0;
@@ -281,7 +282,7 @@ void stackUpdate(KRR_Stack_t* stack, Item_t* item) {
 	uint64_t mid_pos;
 
 	while (j > 0){
-		x = ldexp(pcg64_random(), -64); //PRNG [0,1)
+		x = ldexp(jy_64_random(), -64); //PRNG [0,1)
 		
 	 	x = pow(x, exp)*(j-1); //inverse function, pick a index from 0 to j-1
 	 	x = round(x);

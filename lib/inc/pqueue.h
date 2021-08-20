@@ -34,7 +34,7 @@
 
 #ifndef PQUEUE_H
 #define PQUEUE_H
-#include "../../uthash.h"
+#include "uthash.h"
 #include <stdint.h>
 /** priority data type */
 typedef unsigned long long pqueue_pri_t;

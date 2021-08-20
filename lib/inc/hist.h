@@ -3,7 +3,7 @@
 
 #include <math.h>
 #include <stdio.h>
-#include "util/JY_MACRO.h"
+#include "JY_MACRO.h"
 
 //histogram sd >= 0
 #define LOG 1

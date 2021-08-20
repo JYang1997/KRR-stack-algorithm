@@ -2,12 +2,14 @@ LIBIDIR = ./lib/inc/
 LIBSDIR = ./lib/src/
 SRCIDIR = ./inc/
 IDIR1 = ../../../inc/libpqueue/src/
-CFLAGS=-I$(IDIR) -I$(IDIR1)
+CFLAGS=-I$(LIBIDIR) -I$(SRCIDIR)
 CC = gcc
 MAIN = random_stack_main.c 
 #SRC = ./src/hist.c ./src/priority.c ./src/RankCache.c 
 DOTO = $(LIBSDIR)/murmur3.o $(LIBSDIR)/entropy.o $(LIBSDIR)/pqueue.o $(LIBSDIR)/libpcg_random.a
 
+
+OBJS = 
 
 all: CACHE
 
@@ -32,8 +34,7 @@ VAR_K_EXP: $(MAIN)
 KRR:
 
 
-UTIL:
-	$(CC) -c $(LIBSDIR)utils.c
+UTIL: 
 
 
 MURMUR3:

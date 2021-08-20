@@ -3,45 +3,70 @@
 
 
 typedef struct progress_bar_t {
-	char bar[28];
-	uint64_t total;
-	uint64_t cnt;
-	uint64_t star;
-	int barIndex;
+    char bar[28];
+    uint64_t total;
+    uint64_t cnt;
+    uint64_t star;
+    int barIndex;
 } progress_bar_t;
 
-#define PROGRESS_BAR_INIT(total, barPtr)
-do {
-	#ifdef NO_PROGRESS_BAR
-		break;
-	#endif
-	*barPtr = malloc(sizeof(progress_bar_t));
-	*barPtr->bar[0] = '[';
-	*barPtr->bar[26] = ']';
-	*barPtr->bar[27]= '\0';
-	for (i=1; i<=25; i++) *barPtr->bar[i] = ' ';
-	*barPtr->total = total;
-	*barPtr->cnt = 0;
-	*barPtr->star = total/100;
-	*barPtr->barIndex = 1;
+
+
+#ifdef PROGRESS_BAR
+
+#define PROGRESS_BAR_INIT(total,barPtr)                                         \
+do {                                                                            \                                                                   \
+    *barPtr = malloc(sizeof(progress_bar_t));                                   \
+    *barPtr->bar[0] = '[';                                                      \
+    *barPtr->bar[26] = ']';                                                     \
+    *barPtr->bar[27]= '\0';                                                     \
+    for (i=1; i<=25; i++) *barPtr->bar[i] = ' ';                                \
+    *barPtr->total = total;                                                     \
+    *barPtr->cnt = 0;                                                           \
+    *barPtr->star = total/100;                                                  \
+    *barPtr->barIndex = 1;                                                      \
 } while (0)
 
-#define PROGRESS_BAR_UPDATE(bar)
-do {
-	#ifdef NO_PROGRESS_BAR
-		break;
-	#endif
-	bar->cnt++;
-	if (bar->cnt % star == 0) {
-		if (bar->cnt%(bar->star*4) == 0){
-			bar->bar[bar->barIndex++] = '#';
-		}
-		fprintf(stdout,"\rProgress: %s%d%% %ld", bar->bar, (int)(bar->cnt/(double)bar->total*100)+1, bar->cnt);
-		if(bar->cnt == total) fprintf(stdout,"\n");
-		fflush(stdout);
-	}
+#else 
+#define PROGRESS_BAR_INIT(total,barPtr)
+#endif 
+
+#ifdef PROGRESS_BAR
+
+#define PROGRESS_BAR_UPDATE(bar)                                                \
+do {                                                                            \                                                                   \
+    bar->cnt++;                                                                 \
+    if (bar->cnt % star == 0) {                                                 \
+        if (bar->cnt%(bar->star*4) == 0){                                       \
+            bar->bar[bar->barIndex++] = '#';                                    \
+        }                                                                       \
+        fprintf(stdout,"\rProgress: %s%d%% %ld",                                \
+            bar->bar, (int)(bar->cnt/(double)bar->total*100)+1, bar->cnt);      \
+        if(bar->cnt == total) fprintf(stdout,"\n");                             \
+        fflush(stdout);                                                         \
+    }                                                                           \
 } while(0)
 
+#else
+#define PROGRESS_BAR_UPDATE(bar)
+#endif
+
+
+#define COUNT_FILE_LINE(fileName,totalPtr)                                      \
+do {                                                                            \
+    FILE* rfd;                                                                  \
+    if((rfd = fopen(fileName,"r")) == NULL)                                     \
+    { perror("COUNT_FILE_LINE: open error for read"); exit(-1); }               \
+    *totalPtr = 0;                                                              \
+    ssize_t read;                                                               \
+    char* line = NULL;                                                          \
+    size_t len = 0;                                                             \
+    while ((read = getline(&line, &len, rfd)) != -1) {                          \
+        (*totalPtr)++;                                                          \
+    }                                                                           \
+    free(line);                                                                 \
+    fclose(rfd);                                                                \
+} while(0)
 
 
 uint32_t random_bits();
