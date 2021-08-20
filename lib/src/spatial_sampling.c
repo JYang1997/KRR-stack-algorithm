@@ -212,7 +212,7 @@ void tw_fixed_rate_spatial_sampling(char* fileName,
 
 }
 
-void ycsb_fixed_rate_spatial_sampling (FILE* 	rfd,
+void ycsb_fixed_rate_spatial_sampling(char* fileName,
 								  void* 	stack,
 								  access_func access,
 							 	  uint32_t 	seed,
@@ -232,20 +232,23 @@ void ycsb_fixed_rate_spatial_sampling (FILE* 	rfd,
 	int64_t sd;
 	char* ret;
 	char   line[1024];
+	char* tempLine;
 
 	if(seed == 0) seed = jy_32_random(); //defined in this file
 	
 	fprintf(stdout,"seed: %u\n",seed );
 
 
-	ret = fgets(line, 256, rfd);
-	keyStr = strtok(line, " ");
-	keyStr = strtok(NULL, " ");
-	uint64_t total = strtoull(keyStr, NULL, 10);
+
+	uint64_t total = 0;
+	COUNT_FILE_LINE(fileName, &total);
 
 	progress_bar_t* bar;
 	PROGRESS_BAR_INIT(total, &bar);
 
+	FILE* rfd;
+	if((rfd = fopen(fileName,"r")) == NULL)
+	{ perror("open error for read"); exit(-1); }
 
 	uint64_t actualGetCnt = 0;
 	uint64_t hash[2];     
@@ -253,15 +256,19 @@ void ycsb_fixed_rate_spatial_sampling (FILE* 	rfd,
 	P = P << 24;
 	uint64_t T = (uint64_t)(P * sampling_rate); //truncate instead of round
 	
-	while ((ret=fgets(line, 256, rfd)) != NULL)
+	uint64_t tempc = 0;
+	while ((ret=fgets(line, 1024, rfd)) != NULL)
 	{
+		tempLine = line;
 
+		keyStr = strsep(&tempLine, ","); 
+		if (strcmp(keyStr, "[OVERALL]") == 0) break;
+        if (++tempc < 22) continue;
 		
-		keyStr = strtok(line, ",");
 		key = strtoull(keyStr, NULL, 10);
-		sizeStr = strtok(NULL, ",");
+		sizeStr = strsep(&tempLine, ","); 
 		size = (sizeStr != NULL) ? strtoul(sizeStr, NULL, 10) : 1;
-		commandStr = strtok(NULL, ",");
+		commandStr = strsep(&tempLine, "\n"); 
 		commandStr = (commandStr == NULL) ? "GET" : commandStr;
 
 		if(strcmp(commandStr, "GET") == 0) actualGetCnt++;

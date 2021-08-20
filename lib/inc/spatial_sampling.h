@@ -39,7 +39,7 @@ void tw_fixed_rate_spatial_sampling(char* fileName,
                                   Hist_t*   hist,
                                   double*   timePtr);
 
-void ycsb_fixed_rate_spatial_sampling(FILE*     rfd,
+void ycsb_fixed_rate_spatial_sampling(char* fileName,
                                   void*     stack,
                                   access_func access,
                                   uint32_t  seed,

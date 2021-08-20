@@ -81,7 +81,7 @@ arg8: seed (optional)\n";
 	tt_time += (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec);
 
 	double stack_process_time = 0; 
-	tw_fixed_rate_spatial_sampling(strdup(argv[1]), 
+	ycsb_fixed_rate_spatial_sampling(strdup(argv[1]), 
 								stack,
 								(access_func)KRR_access,
 								seed, 

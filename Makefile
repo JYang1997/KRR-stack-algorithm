@@ -14,8 +14,15 @@ else ifeq ($(NOOP),yes)
 else
 	OPTIMIZE_FLAG := -O2
 endif
-VAR := mult-ops-variable-KRR
-UNI := mult-ops-uniform-KRR
+
+ifeq ($(UNIFORM),yes)
+ 	TYPE_FLAG := 
+ 	EXE := mult-ops-uniform-KRR
+else 
+	TYPE_FLAG := -DVARSIZE
+	EXE := mult-ops-variable-KRR
+endif
+
 LIBSRC := $(wildcard $(LIBSDIR)/*.c)
 LIBOBJ := $(LIBSRC:$(LIBSDIR)/%.c=$(LIBSDIR)/%.o)
 SRC := $(SRCSDIR)/KRR_mult_ops.c
@@ -38,14 +45,13 @@ PCGLIB := $(LIBSDIR)/libpcg_random.a
 # VAR_K_EXP: $(MAIN)
 # 	$(CC) $(CFLAGS) -DVARSIZE -DK_EXP=$(K) $(MAIN) $(DOTO) -O2 -lm -o back_KRR_variable_K$(K)
 
-all: $(PCGDIR) $(VAR)
+all: $(PCGDIR) $(EXE)
 
-$(VAR): $(LIBOBJ) $(OBJ) $(SRCSDIR)/KRR_main.c 
-	$(CC) $(CFLAGS) $(OPTIMIZE_FLAG) -DVARSIZE $^ $(PCGLIB) -lm  -o $@
-
+$(EXE): $(LIBOBJ) $(OBJ) $(SRCSDIR)/KRR_main.c 
+	$(CC) $(CFLAGS) $(OPTIMIZE_FLAG) $^ $(PCGLIB) -lm  -o $@
 
 $(OBJ): $(SRC)
-	$(CC) $(CFLAGS) $(OPTIMIZE_FLAG) -c $< -o $@
+	$(CC) $(TYPE_FLAG) $(CFLAGS) $(OPTIMIZE_FLAG) -c $< -o $@
 
 $(LIBSDIR)/%.o: $(LIBSDIR)/%.c
 	$(CC) $(CFLAGS) $(OPTIMIZE_FLAG) -c $< -o $@
