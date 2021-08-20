@@ -212,3 +212,93 @@ void tw_fixed_rate_spatial_sampling(char* fileName,
 
 }
 
+void ycsb_fixed_rate_spatial_sampling (FILE* 	rfd,
+								  void* 	stack,
+								  access_func access,
+							 	  uint32_t 	seed,
+								  float 	sampling_rate,
+								  Hist_t* 	hist,
+								  double* 	timePtr){
+
+
+	if (timePtr != NULL) *timePtr = 0;
+
+
+	char *keyStr;
+	char *sizeStr;
+	char *commandStr = NULL;
+	uint32_t size;
+	uint64_t key;
+	int64_t sd;
+	char* ret;
+	char   line[1024];
+
+	if(seed == 0) seed = jy_32_random(); //defined in this file
+	
+	fprintf(stdout,"seed: %u\n",seed );
+
+
+	ret = fgets(line, 256, rfd);
+	keyStr = strtok(line, " ");
+	keyStr = strtok(NULL, " ");
+	uint64_t total = strtoull(keyStr, NULL, 10);
+
+	progress_bar_t* bar;
+	PROGRESS_BAR_INIT(total, &bar);
+
+
+	uint64_t actualGetCnt = 0;
+	uint64_t hash[2];     
+	uint64_t P = 1;
+	P = P << 24;
+	uint64_t T = (uint64_t)(P * sampling_rate); //truncate instead of round
+	
+	while ((ret=fgets(line, 256, rfd)) != NULL)
+	{
+
+		
+		keyStr = strtok(line, ",");
+		key = strtoull(keyStr, NULL, 10);
+		sizeStr = strtok(NULL, ",");
+		size = (sizeStr != NULL) ? strtoul(sizeStr, NULL, 10) : 1;
+		commandStr = strtok(NULL, ",");
+		commandStr = (commandStr == NULL) ? "GET" : commandStr;
+
+		if(strcmp(commandStr, "GET") == 0) actualGetCnt++;
+
+		struct timeval  tv1, tv2;
+		gettimeofday(&tv1, NULL);
+		
+		MurmurHash3_x64_128(keyStr, strlen(keyStr), seed, hash);
+		if ((unsigned long long)(hash[1] & (P-1)) < T) {
+			sd = access(stack, key, size, commandStr);
+
+			if (sd != INVALID) { 
+				sd = (sd != COLDMISS) ? sd / sampling_rate : sd;
+			
+				addToHist(hist,sd);
+			}
+		}
+
+		gettimeofday(&tv2, NULL);
+
+		if (timePtr != NULL) {
+			*timePtr += (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec);
+		}
+		
+
+		PROGRESS_BAR_UPDATE(bar);
+		
+	}
+
+
+
+	//vertical shift correction
+
+	int64_t diff = ((actualGetCnt*(double)sampling_rate) - hist->totalCnt);
+	hist->sdHist[0] = hist -> sdHist[0] + diff;
+	// stack->totRef = stack->totRef + diff; //shards should only make change to the hist
+	hist->totalCnt = hist->totalCnt + diff;
+
+}
+

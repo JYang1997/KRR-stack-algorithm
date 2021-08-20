@@ -1,7 +1,7 @@
 #ifndef __JY_UTILS_H__
 #define __JY_UTILS_H__
 
-
+#define PROGRESS_BAR
 typedef struct progress_bar_t {
     char bar[28];
     uint64_t total;
@@ -15,12 +15,12 @@ typedef struct progress_bar_t {
 #ifdef PROGRESS_BAR
 
 #define PROGRESS_BAR_INIT(total,barPtr)                                         \
-do {                                                                            \                                                                   \
+do {                                                                            \
     *barPtr = malloc(sizeof(progress_bar_t));                                   \
     *barPtr->bar[0] = '[';                                                      \
     *barPtr->bar[26] = ']';                                                     \
     *barPtr->bar[27]= '\0';                                                     \
-    for (i=1; i<=25; i++) *barPtr->bar[i] = ' ';                                \
+    for (int i=1; i<=25; i++) *barPtr->bar[i] = ' ';                                \
     *barPtr->total = total;                                                     \
     *barPtr->cnt = 0;                                                           \
     *barPtr->star = total/100;                                                  \
@@ -34,17 +34,17 @@ do {                                                                            
 #ifdef PROGRESS_BAR
 
 #define PROGRESS_BAR_UPDATE(bar)                                                \
-do {                                                                            \                                                                   \
+do {                                                                            \
     bar->cnt++;                                                                 \
-    if (bar->cnt % star == 0) {                                                 \
+    if (bar->cnt % bar->star == 0) {                                                 \
         if (bar->cnt%(bar->star*4) == 0){                                       \
             bar->bar[bar->barIndex++] = '#';                                    \
         }                                                                       \
         fprintf(stdout,"\rProgress: %s%d%% %ld",                                \
             bar->bar, (int)(bar->cnt/(double)bar->total*100)+1, bar->cnt);      \
-        if(bar->cnt == total) fprintf(stdout,"\n");                             \
         fflush(stdout);                                                         \
     }                                                                           \
+     if(bar->cnt == total) fprintf(stdout,"\n");                                \
 } while(0)
 
 #else
