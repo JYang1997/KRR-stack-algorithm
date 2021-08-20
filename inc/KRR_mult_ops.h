@@ -29,8 +29,7 @@ SOFTWARE.
 #define JY_STACK_KRR_H
 
 #include "uthash.h"
-#include "utstack.h"
-#include "util/hist.h"
+#include "hist.h"
 #include "pqueue.h"
 #include <stdint.h>
 #include <sys/time.h>

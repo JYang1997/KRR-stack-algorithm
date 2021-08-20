@@ -31,4 +31,11 @@ void fixed_rate_spatial_sampling (FILE* 	rfd,
 								  Hist_t* 	hist,
 								  double* 	timePtr);
 
+void tw_fixed_rate_spatial_sampling(char* fileName,
+                                  void*     stack,
+                                  access_func access,
+                                  uint32_t  seed,
+                                  float     sampling_rate,
+                                  Hist_t*   hist,
+                                  double*   timePtr);
 #endif //__SPATIAL_SAMPLING_H__

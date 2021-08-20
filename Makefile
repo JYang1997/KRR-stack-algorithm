@@ -1,29 +1,57 @@
-LIBIDIR = ./lib/inc/
-LIBSDIR = ./lib/src/
-SRCIDIR = ./inc/
-IDIR1 = ../../../inc/libpqueue/src/
-CFLAGS=-I$(LIBIDIR) -I$(SRCIDIR)
-CC = gcc
-MAIN = random_stack_main.c 
-#SRC = ./src/hist.c ./src/priority.c ./src/RankCache.c 
-DOTO = $(LIBSDIR)/murmur3.o $(LIBSDIR)/entropy.o $(LIBSDIR)/pqueue.o $(LIBSDIR)/libpcg_random.a
+LIBIDIR := ./lib/inc
+LIBSDIR := ./lib/src
+SRCIDIR := ./inc
+SRCSDIR := ./src
+PCGDIR := ./lib/src/libpcg_src
+
+CFLAGS := -I$(LIBIDIR) -I$(SRCIDIR)
+CC := gcc
+
+ifeq ($(DEBUG),yes)
+ 	OPTIMIZE_FLAG := -ggdb3 -DDEBUG
+else ifeq ($(NOOP),yes)
+ 	OPTIMIZE_FLAG :=  
+else
+	OPTIMIZE_FLAG := -O2
+endif
+VAR := mult-ops-variable-KRR
+UNI := mult-ops-uniform-KRR
+LIBSRC := $(wildcard $(LIBSDIR)/*.c)
+LIBOBJ := $(LIBSRC:$(LIBSDIR)/%.c=$(LIBSDIR)/%.o)
+SRC := $(SRCSDIR)/KRR_mult_ops.c
+OBJ := $(SRCSDIR)/KRR_mult_ops.o
+
+PCGLIB := $(LIBSDIR)/libpcg_random.a
 
 
-OBJS = 
+# all: CACHE
 
-all: CACHE
+# CACHE: $(MAIN)
+# 	$(CC) $(CFLAGS) $(MAIN) $(DOTO) -g -lm -o back_KRR_uniform
 
-CACHE: $(MAIN)
-	$(CC) $(CFLAGS) $(MAIN) $(DOTO) -g -lm -o back_KRR_uniform
+# VAR:
+# 	$(CC) $(CFLAGS) -DVARSIZE $(MAIN) $(DOTO) -O2 -lm -o back_KRR_variable
 
-VAR:
-	$(CC) $(CFLAGS) -DVARSIZE $(MAIN) $(DOTO) -O2 -lm -o back_KRR_variable
+# K_EXP: $(MAIN)
+# 	$(CC) $(CFLAGS) -DK_EXP=$(K) $(MAIN) $(DOTO) -O2 -lm -o back_KRR_uniform_K$(K)
 
-K_EXP: $(MAIN)
-	$(CC) $(CFLAGS) -DK_EXP=$(K) $(MAIN) $(DOTO) -O2 -lm -o back_KRR_uniform_K$(K)
+# VAR_K_EXP: $(MAIN)
+# 	$(CC) $(CFLAGS) -DVARSIZE -DK_EXP=$(K) $(MAIN) $(DOTO) -O2 -lm -o back_KRR_variable_K$(K)
 
-VAR_K_EXP: $(MAIN)
-	$(CC) $(CFLAGS) -DVARSIZE -DK_EXP=$(K) $(MAIN) $(DOTO) -O2 -lm -o back_KRR_variable_K$(K)
+all: $(PCGDIR) $(VAR)
+
+$(VAR): $(LIBOBJ) $(OBJ) $(SRCSDIR)/KRR_main.c 
+	$(CC) $(CFLAGS) $(OPTIMIZE_FLAG) -DVARSIZE $^ $(PCGLIB) -lm  -o $@
+
+
+$(OBJ): $(SRC)
+	$(CC) $(CFLAGS) $(OPTIMIZE_FLAG) -c $< -o $@
+
+$(LIBSDIR)/%.o: $(LIBSDIR)/%.c
+	$(CC) $(CFLAGS) $(OPTIMIZE_FLAG) -c $< -o $@
+
+$(PCGDIR):
+	$(MAKE) -C $@
 
 
 
@@ -31,20 +59,11 @@ VAR_K_EXP: $(MAIN)
 #KRR.o
 #spatial.o pqueue.o murmur3.o utils.o
 
-KRR:
-
-
-UTIL: 
-
-
-MURMUR3:
-
-SPATIAL:
-
-PQUEUE:
-
-
-
 
 clean:
-	rm -f back_KRR*
+	rm -f $(LIBSDIR)/*.o $(LIBSDIR)/*.a $(SRCSDIR)/*.o
+	$(MAKE) -C $(PCGDIR) clean
+
+
+
+.PHONY: all $(PCGDIR)
