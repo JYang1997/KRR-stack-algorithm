@@ -12,7 +12,7 @@ ifeq ($(DEBUG),yes)
 else ifeq ($(NOOP),yes)
  	OPTIMIZE_FLAG :=  
 else
-	OPTIMIZE_FLAG := -O2
+	OPTIMIZE_FLAG := -O2 -DNDEBUG
 endif
 
 ifeq ($(UNIFORM),yes)
