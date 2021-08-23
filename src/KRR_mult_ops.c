@@ -41,23 +41,51 @@ int64_t variableSizeDistance(KRR_Stack_t* stack, int64_t st_loc) {
 	}
 
 	sd = stack->totSize_array[p] + second_portion;
+	
+	#ifdef DEBUG
+	if(sd > stack->totSize_array[p+1]) {
+		printf("first portion: %ld, second portion: %ld, st_loc: %ld, p:%u [p+1]:%ld tslen: %d\n",
+			stack->totSize_array[p],second_portion,st_loc,p,stack->totSize_array[p+1],stack->tsLen);
+	
+		for (int i = 0; i < ((KRR_Stack_t*)stack)->tsLen; ++i)
+		{
+			printf("%ld ", ((KRR_Stack_t*)stack)->totSize_array[i]);
+
+		}
+		printf("\n");
+		exit(-1);
+	}
+
+
+	if(stack->totalSize != stack->totSize_array[stack->tsLen-1]){
+		for (int i = 0; i < ((KRR_Stack_t*)stack)->tsLen; ++i)
+		{
+			printf("%ld ", ((KRR_Stack_t*)stack)->totSize_array[i]);
+
+		}
+		printf("\n");
+
+		printf("totalsize: %ld\n",stack->totalSize);
+		exit(-1);
+	}
+	#endif
 	return sd;
 }
 
 
 /**
  * @param low: the smaller position of the adjacent swap positions
- * @param high: the higher position of the adjacent swap positions
+ * @param high: the higher position of the adjacent swap positions (-1 update all rest entries)
  * @param delta: the net size flow from these two positions
  * position >= 1 
  **/
-static void updateTotSizeArray(KRR_Stack_t* stack, uint64_t low, uint64_t high, int64_t delta) {
+static void updateTotSizeArray(KRR_Stack_t* stack, int64_t low, int64_t high, int64_t delta) {
 
 	if (delta == 0) return;
 	//sn_index is the node that stores the total size up till the expbase^(low)
 	//the update does not include sn_upbound because the net size flow out of high position is zero
 	uint32_t sn_index = ceil(LOGA(low, SIZE_BASE));
- 	uint32_t sn_upbound = ceil(LOGA(high, SIZE_BASE));
+ 	uint32_t sn_upbound = (high == -1) ? stack->tsLen : ceil(LOGA(high, SIZE_BASE));
  	while(sn_index < sn_upbound) {
 
  		stack->totSize_array[sn_index] += delta;
@@ -88,6 +116,7 @@ KRR_Stack_t* stackInit(uint32_t k) {
 	
 	stack->totalKey = 0;
 	stack->k = pow(k,K_EXP);
+	// stack->capacity = 1000000000;
 	stack->capacity = INITIAL_CAPACITY;
 
 	stack->item_array = malloc((stack->capacity)*sizeof(Item_t*));
@@ -98,7 +127,7 @@ KRR_Stack_t* stackInit(uint32_t k) {
 
 	#ifdef VARSIZE
 
-	stack->tsLen = ((uint32_t)ceil(LOGA(stack->capacity, SIZE_BASE)));
+	stack->tsLen = ((uint32_t)ceil(LOGA(stack->capacity, SIZE_BASE)))+1;
 	stack->totSize_array = malloc(stack->tsLen*sizeof(int64_t));
 	stack->totalSize = 0;
 	memset(stack->totSize_array, 0, sizeof(int64_t)*stack->tsLen);
@@ -159,14 +188,20 @@ void stackResize(KRR_Stack_t* stack)
 		stack->item_array =(Item_t**)arrayResize(stack->item_array, sizeof(Item_t*), &(stack->capacity));
 
 		#ifdef VARSIZE
-		int newLen = ceil(LOGA(stack->capacity,SIZE_BASE));
+		int newLen = ceil(LOGA(stack->capacity,SIZE_BASE))+1;
+
+		
 		if(newLen > stack->tsLen) {
 			stack->totSize_array = realloc(stack->totSize_array, (newLen)*sizeof(int64_t));
 			
-			memset(stack->totSize_array+stack->tsLen, 0, sizeof(int64_t)*(newLen-stack->tsLen));
-			updateTotSizeArray(stack, prev_cap, stack->capacity, stack->totalSize);
+			for(int i = stack->tsLen; i < newLen; i++) {
+				stack->totSize_array[i] = stack->totalSize;
+			}
 			stack->tsLen = newLen;
 		}
+
+
+		
 		#endif
 	}
 }
@@ -196,6 +231,28 @@ Item_t* createItem(KRR_Stack_t* stack, uint64_t key, int32_t size) {
 	#ifdef VARSIZE
 	stack->totalSize += size;
 	n_item->size = size;
+
+				//need to update all partial sum node that is beyond item's index.
+	updateTotSizeArray(stack, n_item->index+1, -1, n_item->size);
+	
+	#ifdef DEBUG
+
+	if(stack->totalSize != stack->totSize_array[stack->tsLen-1]){
+		for (int i = 0; i < ((KRR_Stack_t*)stack)->tsLen; ++i)
+		{
+			printf("%ld ", ((KRR_Stack_t*)stack)->totSize_array[i]);
+
+		}
+		printf("\n");
+		uint32_t sn_index = ceil(LOGA(n_item->index+1, SIZE_BASE));
+			uint32_t sn_upbound = ceil(LOGA(stack->capacity, SIZE_BASE));
+		printf("item pos: %ld stack cap: %ld \narr pos: %d, arr bound: %d\n",
+			n_item->index+1, stack->capacity, sn_index, sn_upbound);
+		printf("totalsize: %ld delta: %d line 252\n",stack->totalSize, n_item->size);
+		exit(-1);
+	}
+	#endif
+
 	#endif
 
 	stack->item_array[n_item->index] = n_item;
@@ -340,10 +397,25 @@ void stackUpdate(KRR_Stack_t* stack, Item_t* item) {
 		#ifdef VARSIZE
 		int32_t del_size = stack->item_array[stack->totalKey-1]->size;
 
-		updateTotSizeArray(stack, stack->totalKey, stack->capacity, 0-del_size);		
+		updateTotSizeArray(stack, stack->totalKey, -1, 0-del_size);		
 	
 		stack->totalSize -= del_size;
-	
+		
+
+		#ifdef DEBUG
+
+		if(stack->totalSize != stack->totSize_array[stack->tsLen-1]){
+			for (int i = 0; i < ((KRR_Stack_t*)stack)->tsLen; ++i)
+			{
+				printf("%ld ", ((KRR_Stack_t*)stack)->totSize_array[i]);
+
+			}
+			printf("\n");
+
+			printf("totalsize: %ld delsize: %d line 420\n",stack->totalSize, del_size);
+			exit(-1);
+		}
+		#endif
 		#endif
 
 		pqueue_remove_bykey(stack->holder_heap, stack->totalKey-1);
@@ -377,11 +449,7 @@ int64_t KRR_GET(KRR_Stack_t* 	stack,
 
 	if (item == NULL) {
 		item = createItem(stack, key, size);
-		#ifdef VARSIZE	//special case when item is newly add to the stack
-					//need to update all partial sum node that is beyond item's index.
-		updateTotSizeArray(stack, item->index+1, stack->capacity, item->size);
-	
-		#endif
+		
 	} else {
 		sd = stackDistance(stack, item);
 	}
@@ -412,17 +480,35 @@ void KRR_SET(KRR_Stack_t* 	stack,
 
 	if (item == NULL) {
 		item = createItem(stack, key, size);
-		#ifdef VARSIZE	
-		updateTotSizeArray(stack, item->index+1, stack->capacity, item->size);
-		#endif
+
 	} else {
 		
 		#ifdef VARSIZE	
 		if (item->size != size) {
-			updateTotSizeArray(stack, item->index+1, stack->capacity, size-(item->size));
-	
+			updateTotSizeArray(stack, item->index+1, -1, size-(item->size));
+			
+			
+			stack->totalSize += size-(item->size);
+
+			#ifdef DEBUG
+
+				if(stack->totalSize != stack->totSize_array[stack->tsLen-1]){
+					for (int i = 0; i < ((KRR_Stack_t*)stack)->tsLen; ++i)
+					{
+						printf("%ld ", ((KRR_Stack_t*)stack)->totSize_array[i]);
+
+					}
+					printf("\n");
+
+					printf("totalsize: %ld delta: %d line 543 size: %ditemsize: %d\n"
+						,stack->totalSize, size-(item->size), size, item->size);
+					exit(-1);
+				}
+				#endif
+
 			item->size = size; //change item's size to new size
 							   //the stackupdate will carry by new size
+				
 		}
 		#endif
 	}
@@ -456,8 +542,23 @@ void KRR_DELETE(KRR_Stack_t* stack, uint64_t key) {
 		#ifdef VARSIZE
 		int32_t del_size = stack->item_array[stack->totalKey-1]->size;
 	
-		updateTotSizeArray(stack, stack->totalKey, stack->capacity, 0-del_size);
+		updateTotSizeArray(stack, stack->totalKey, -1, 0-del_size);
 		stack->totalSize -= del_size;
+
+		#ifdef DEBUG
+
+				if(stack->totalSize != stack->totSize_array[stack->tsLen-1]){
+					for (int i = 0; i < ((KRR_Stack_t*)stack)->tsLen; ++i)
+					{
+						printf("%ld ", ((KRR_Stack_t*)stack)->totSize_array[i]);
+
+					}
+					printf("\n");
+
+					printf("totalsize: %ld delta: %d line 593\n",stack->totalSize, del_size);
+					exit(-1);
+				}
+				#endif
 		#endif
 
 		pqueue_remove_bykey(stack->holder_heap, stack->totalKey-1);

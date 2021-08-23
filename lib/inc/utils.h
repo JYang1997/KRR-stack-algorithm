@@ -2,6 +2,7 @@
 #define __JY_UTILS_H__
 
 #define PROGRESS_BAR
+
 typedef struct progress_bar_t {
     char bar[28];
     uint64_t total;
@@ -62,7 +63,7 @@ do {                                                                            
     char* line = NULL;                                                          \
     size_t len = 0;                                                             \
     while ((read = getline(&line, &len, rfd)) != -1) {                          \
-        (*totalPtr)++;                                                          \
+        *totalPtr = *totalPtr+1;                                                          \
     }                                                                           \
     free(line);                                                                 \
     fclose(rfd);                                                                \

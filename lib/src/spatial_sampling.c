@@ -9,7 +9,7 @@
 #include "murmur3.h"
 #include "spatial_sampling.h"
 #include "twitter_2020.h"
-
+#include <assert.h>
 
 
 
@@ -34,6 +34,7 @@ void fixed_rate_spatial_sampling (FILE* 	rfd,
 	char* ret;
 	char   line[1024];
 
+	jy_32_srandom();
 	if(seed == 0) seed = jy_32_random(); //defined in this file
 	
 	fprintf(stdout,"seed: %u\n",seed );
@@ -119,17 +120,18 @@ void tw_fixed_rate_spatial_sampling(char* fileName,
 	if (timePtr != NULL) *timePtr = 0;
 	struct timeval  tv1, tv2;
 
-
+	jy_32_srandom();
 	if(seed == 0) seed = jy_32_random(); //defined in this file
 	
-	fprintf(stderr,"seed: %u\n",seed );
+	fprintf(stdout,"seed: %u\n",seed );
 
 
-	uint64_t total = 0;
-	COUNT_FILE_LINE(fileName, &total);
+	// uint64_t total = 1003018062;
+	// COUNT_FILE_LINE(fileName, &total);
+	uint64_t processedCnt = 0;
 
-	progress_bar_t* bar;
-	PROGRESS_BAR_INIT(total, &bar);
+	// progress_bar_t* bar;
+	// PROGRESS_BAR_INIT(total, &bar);
 
 
 	char* commandStr = NULL;
@@ -179,15 +181,18 @@ void tw_fixed_rate_spatial_sampling(char* fileName,
 		size = ref->val_size + ref->key_size;
 
 
+
 		gettimeofday(&tv1, NULL);
 		
 		MurmurHash3_x64_128(ref->murmur3_hashed_key, 16, seed, hash);
+		
 		if ((unsigned long long)(hash[1] & (P-1)) < T) {
+		// printf("key :%llu, commandStr %s, size: %d\n",ref->murmur3_hashed_key[1], commandStr, size );
+			assert(size>0);
 			sd = access(stack, ref->murmur3_hashed_key[1], size, commandStr);
 
 			if (sd != INVALID) { 
 				sd = (sd != COLDMISS) ? sd / sampling_rate : sd;
-			
 				addToHist(hist,sd);
 			}
 		}
@@ -198,8 +203,12 @@ void tw_fixed_rate_spatial_sampling(char* fileName,
 			*timePtr += (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec);
 		}
 		
-
-		PROGRESS_BAR_UPDATE(bar);
+		if(processedCnt % 1000000 == 0){
+			fprintf(stdout,"\rTotal Processed: %ld", processedCnt);  
+        	fflush(stdout);   
+		}
+		processedCnt++;
+		// PROGRESS_BAR_UPDATE(bar);
 		
 	}
 
@@ -234,6 +243,7 @@ void ycsb_fixed_rate_spatial_sampling(char* fileName,
 	char   line[1024];
 	char* tempLine;
 
+	jy_32_srandom();
 	if(seed == 0) seed = jy_32_random(); //defined in this file
 	
 	fprintf(stdout,"seed: %u\n",seed );
@@ -297,9 +307,6 @@ void ycsb_fixed_rate_spatial_sampling(char* fileName,
 		PROGRESS_BAR_UPDATE(bar);
 		
 	}
-
-
-
 	//vertical shift correction
 
 	int64_t diff = ((actualGetCnt*(double)sampling_rate) - hist->totalCnt);
