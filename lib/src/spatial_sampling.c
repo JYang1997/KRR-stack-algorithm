@@ -154,7 +154,7 @@ void tw_fixed_rate_spatial_sampling(char* fileName,
 
 		// get/gets/set/add/replace/cas/append/prepend/delete/incr/decr
 		if (strcmp(ref->op, "get") == 0 //get
-		 || strcmp(ref->op, "get") == 0) {
+		 || strcmp(ref->op, "gets") == 0) {
 			commandStr = "GET";
 		} else if ( //set
 			strcmp(ref->op, "set") == 0
@@ -211,7 +211,7 @@ void tw_fixed_rate_spatial_sampling(char* fileName,
 		// PROGRESS_BAR_UPDATE(bar);
 		
 	}
-
+	fprintf(stdout,"\n");  
 	//vertical shift correction
 
 	int64_t diff = ((actualGetCnt*(double)sampling_rate) - hist->totalCnt);

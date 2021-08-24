@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include "pcg_variants.h"
 #include "entropy.h"
@@ -19,8 +20,8 @@ uint32_t random_bits() {
 
 
 void jy_64_srandom() {
-	volatile uint64_t seeds[2];
-    entropy_getbytes((void*)seeds, sizeof(seeds));
+	volatile pcg128_t seeds[2];
+    fallback_entropy_getbytes((void*)seeds, sizeof(seeds));
     pcg64_srandom(seeds[0], seeds[1]);
 }
 
@@ -32,7 +33,7 @@ uint64_t jy_64_random() {
 
 void jy_32_srandom() {
 	volatile uint64_t seeds[2];
-    entropy_getbytes((void*)seeds, sizeof(seeds));
+    fallback_entropy_getbytes((void*)seeds, sizeof(seeds));
     pcg32_srandom(seeds[0], seeds[1]);
 }
 

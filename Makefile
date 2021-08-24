@@ -48,7 +48,7 @@ PCGLIB := $(LIBSDIR)/libpcg_random.a
 all: $(PCGDIR) $(EXE)
 
 $(EXE): $(LIBOBJ) $(OBJ) $(SRCSDIR)/KRR_main.c 
-	$(CC) $(CFLAGS) $(OPTIMIZE_FLAG) $^ $(PCGLIB) -lm  -o $@
+	$(CC) $(TYPE_FLAG) $(CFLAGS) $(OPTIMIZE_FLAG) $^ $(PCGLIB) -lm  -o $@
 
 $(OBJ): $(SRC)
 	$(CC) $(TYPE_FLAG) $(CFLAGS) $(OPTIMIZE_FLAG) -c $< -o $@

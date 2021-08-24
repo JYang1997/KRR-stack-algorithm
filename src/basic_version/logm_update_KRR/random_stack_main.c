@@ -3,8 +3,9 @@
 #include <libgen.h>
 #include <stdio.h>
 #include <string.h>
-#include "KRR_mult_ops.h"
-#include "spatial_sampling.h"
+
+
+#include "random_stack_shards.c"
 
 
 //MSR shards script
@@ -14,12 +15,7 @@
  *       arg4: step rd
  */
 int main(int argc, char const *argv[])
-{	
-
-
-
-	int TIME_FLAG=0;
-	double tt_time =0;
+{
 	char buf[1024];
 
 
@@ -51,8 +47,8 @@ arg8: seed (optional)\n";
 	uint32_t seed = argc > 8 ? strtoul(argv[8], NULL, 10) : 0;
 	uint32_t k = strtoul(argv[5], NULL, 10); 
 
-	// if((rfd = fopen(argv[1],"r")) == NULL)
-	// { perror("open error for read"); return -1; }
+	if((rfd = fopen(argv[1],"r")) == NULL)
+	{ perror("open error for read"); return -1; }
 	
 	const char* file_prefix = argv[2];
 	char* input_path = strdup(argv[1]);
@@ -80,18 +76,9 @@ arg8: seed (optional)\n";
 	gettimeofday(&tv2, NULL);
 	tt_time += (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec);
 
-	double stack_process_time = 0; 
-	tw_fixed_rate_spatial_sampling(strdup(argv[1]), 
-								stack,
-								(access_func)KRR_access,
-								seed, 
-								atof(argv[6]), 
-								hist,
-								&stack_process_time);
+	fixed_rate_shards(rfd, seed, atof(argv[6]), hist,  stack );
 
 	
-	tt_time += stack_process_time;
-
 	gettimeofday(&tv1, NULL);
 
 	solveMRC(hist);
@@ -103,19 +90,13 @@ arg8: seed (optional)\n";
 	printfMRC(wfd, hist);
 	printfHist(histfd, hist);
 	
-	if(TIME_FLAG == 1){
-		#ifdef VARSIZE
-		fprintf(stdout, "back-KRR k= %s rate= %s file= %s TotalTime = %f seconds totalSize: %ld totalKey: %ld\n"
-			,argv[5],argv[6], basename(input_path) ,tt_time, stack->totalSize, stack->totalKey);
-		#else
-		fprintf(stdout, "back-KRR k= %s rate= %s file= %s TotalTime = %f\n"
-			,argv[5],argv[6], basename(input_path) ,tt_time);
-		#endif
-	}
+	if(TIME_FLAG == 1)
+		fprintf(stderr, "back-KRR k= %s rate= %s file= %s TotalTime = %f seconds\n",argv[5],argv[6], basename(input_path) ,tt_time);
+
 	stackFree(stack);
 	histFree(hist);
 	fclose(wfd);
-	// fclose(rfd);
+	fclose(rfd);
 	fclose(histfd);
 	return 0;
 }
