@@ -41,11 +41,11 @@ do {                                                                            
         if (bar->cnt%(bar->star*4) == 0){                                       \
             bar->bar[bar->barIndex++] = '#';                                    \
         }                                                                       \
-        fprintf(stdout,"\rProgress: %s%d%% %ld",                                \
+        fprintf(stderr,"\rProgress: %s%d%% %ld",                                \
             bar->bar, (int)(bar->cnt/(double)bar->total*100)+1, bar->cnt);      \
-        fflush(stdout);                                                         \
+        fflush(stderr);                                                         \
     }                                                                           \
-     if(bar->cnt == total) fprintf(stdout,"\n");                                \
+     if(bar->cnt == total) fprintf(stderr,"\n");                                \
 } while(0)
 
 #else

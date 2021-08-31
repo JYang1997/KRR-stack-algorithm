@@ -49,6 +49,9 @@ arg8: seed (optional)\n";
 	}
 
 	uint32_t seed = argc > 8 ? strtoul(argv[8], NULL, 10) : 0;
+	jy_32_srandom();
+	if (seed == 0) seed = jy_32_random();
+	
 	uint32_t k = strtoul(argv[5], NULL, 10); 
 
 	// if((rfd = fopen(argv[1],"r")) == NULL)
@@ -58,12 +61,12 @@ arg8: seed (optional)\n";
 	char* input_path = strdup(argv[1]);
 
 
-	sprintf(buf, "%s%s_back-stack_%d-lru_R%s.mrc", argv[2], basename(input_path), k, argv[6]);
+	sprintf(buf, "%s%s_back-stack_%d-lru_R%s_seed%u.mrc", argv[2], basename(input_path), k, argv[6],seed);
 	if((wfd = fopen(buf ,"w")) == NULL)
 	{ perror("open error for write"); return -1; }
 
 	buf[0] = '\0';
-	sprintf(buf, "%s%s_back-stack_%d-lru_R%s.hist", argv[2], basename(input_path), k, argv[6]);
+	sprintf(buf, "%s%s_back-stack_%d-lru_R%s_seed%u.hist", argv[2], basename(input_path), k, argv[6],seed);
 	if((histfd = fopen(buf ,"w")) == NULL)
 	{ perror("open error for write"); return -1; }
 	
@@ -73,14 +76,14 @@ arg8: seed (optional)\n";
 	struct timeval  tv1, tv2;
 	gettimeofday(&tv1, NULL);
 
-	//cache init
+	//stack init
 	KRR_Stack_t* stack = stackInit(k);
 	Hist_t* hist = histInit(strtoul(argv[3], NULL, 10),atof(argv[4]));
 
 	gettimeofday(&tv2, NULL);
 	tt_time += (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec);
 
-	double stack_process_time = 0; 
+	double stack_process_time = 0;
 	tw_fixed_rate_spatial_sampling(strdup(argv[1]), 
 								stack,
 								(access_func)KRR_access,
@@ -108,7 +111,7 @@ arg8: seed (optional)\n";
 		fprintf(stdout, "back-KRR k= %s rate= %s file= %s TotalTime = %f seconds totalSize: %ld totalKey: %ld\n"
 			,argv[5],argv[6], basename(input_path) ,tt_time, stack->totalSize, stack->totalKey);
 		#else
-		fprintf(stdout, "back-KRR k= %s rate= %s file= %s TotalTime = %f\n"
+		fprintf(stdout, "back-KRR k= %s rate= %s file= %s TotalTime = %f seconds\n"
 			,argv[5],argv[6], basename(input_path) ,tt_time);
 		#endif
 	}

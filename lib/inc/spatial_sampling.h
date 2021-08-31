@@ -1,7 +1,10 @@
 #ifndef __SPATIAL_SAMPLING_H__
 #define __SPATIAL_SAMPLING_H__
-
-
+#include "hist.h"
+#include "utils.h"
+#include "JY_MACRO.h"
+#include "murmur3.h"
+#include "twitter_2020.h"
 
 typedef int64_t (*access_func)(void*, uint64_t, uint32_t, char*);
 

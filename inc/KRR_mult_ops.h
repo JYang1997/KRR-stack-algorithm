@@ -29,10 +29,10 @@ SOFTWARE.
 #define JY_STACK_KRR_H
 
 #include "uthash.h"
-#include "hist.h"
 #include "pqueue.h"
 #include <stdint.h>
 #include <sys/time.h>
+#include "JY_MACRO.h"
 
 
 #define INITIAL_CAPACITY 32

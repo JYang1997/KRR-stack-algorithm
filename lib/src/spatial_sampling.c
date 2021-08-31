@@ -3,104 +3,99 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
-#include "hist.h"
-#include "utils.h"
-#include "JY_MACRO.h"
-#include "murmur3.h"
 #include "spatial_sampling.h"
-#include "twitter_2020.h"
 #include <assert.h>
 
 
 
-void fixed_rate_spatial_sampling (FILE* 	rfd,
-								  void* 	stack,
-								  access_func access,
-							 	  uint32_t 	seed,
-								  float 	sampling_rate,
-								  Hist_t* 	hist,
-								  double* 	timePtr){
+void fixed_rate_spatial_sampling (FILE*     rfd,
+                                  void*     stack,
+                                  access_func access,
+                                  uint32_t  seed,
+                                  float     sampling_rate,
+                                  Hist_t*   hist,
+                                  double*   timePtr){
 
 
-	if (timePtr != NULL) *timePtr = 0;
+    if (timePtr != NULL) *timePtr = 0;
 
 
-	char *keyStr;
-	char *sizeStr;
-	char *commandStr = NULL;
-	uint32_t size;
-	uint64_t key;
-	int64_t sd;
-	char* ret;
-	char   line[1024];
+    char *keyStr;
+    char *sizeStr;
+    char *commandStr = NULL;
+    uint32_t size;
+    uint64_t key;
+    int64_t sd;
+    char* ret;
+    char   line[1024];
 
-	jy_32_srandom();
-	if(seed == 0) seed = jy_32_random(); //defined in this file
-	
-	fprintf(stdout,"seed: %u\n",seed );
-
-
-	ret = fgets(line, 256, rfd);
-	keyStr = strtok(line, " ");
-	keyStr = strtok(NULL, " ");
-	uint64_t total = strtoull(keyStr, NULL, 10);
-
-	progress_bar_t* bar;
-	PROGRESS_BAR_INIT(total, &bar);
+    jy_32_srandom();
+    if(seed == 0) seed = jy_32_random(); //defined in this file
+    
+    fprintf(stdout,"seed: %u\n",seed );
 
 
-	uint64_t actualGetCnt = 0;
-	uint64_t hash[2];     
-	uint64_t P = 1;
-	P = P << 24;
-	uint64_t T = (uint64_t)(P * sampling_rate); //truncate instead of round
-	
-	while ((ret=fgets(line, 256, rfd)) != NULL)
-	{
+    ret = fgets(line, 256, rfd);
+    keyStr = strtok(line, " ");
+    keyStr = strtok(NULL, " ");
+    uint64_t total = strtoull(keyStr, NULL, 10);
 
-		
-		keyStr = strtok(line, ",");
-		key = strtoull(keyStr, NULL, 10);
-		sizeStr = strtok(NULL, ",");
-		size = (sizeStr != NULL) ? strtoul(sizeStr, NULL, 10) : 1;
-		commandStr = strtok(NULL, ",");
-		commandStr = (commandStr == NULL) ? "GET" : commandStr;
-
-		if(strcmp(commandStr, "GET") == 0) actualGetCnt++;
-
-		struct timeval  tv1, tv2;
-		gettimeofday(&tv1, NULL);
-		
-		MurmurHash3_x64_128(keyStr, strlen(keyStr), seed, hash);
-		if ((unsigned long long)(hash[1] & (P-1)) < T) {
-			sd = access(stack, key, size, commandStr);
-
-			if (sd != INVALID) { 
-				sd = (sd != COLDMISS) ? sd / sampling_rate : sd;
-			
-				addToHist(hist,sd);
-			}
-		}
-
-		gettimeofday(&tv2, NULL);
-
-		if (timePtr != NULL) {
-			*timePtr += (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec);
-		}
-		
-
-		PROGRESS_BAR_UPDATE(bar);
-		
-	}
+    progress_bar_t* bar;
+    PROGRESS_BAR_INIT(total, &bar);
 
 
+    uint64_t actualGetCnt = 0;
+    uint64_t hash[2];     
+    uint64_t P = 1;
+    P = P << 24;
+    uint64_t T = (uint64_t)(P * sampling_rate); //truncate instead of round
+    
+    while ((ret=fgets(line, 256, rfd)) != NULL)
+    {
 
-	//vertical shift correction
+        
+        keyStr = strtok(line, ",");
+        key = strtoull(keyStr, NULL, 10);
+        sizeStr = strtok(NULL, ",");
+        size = (sizeStr != NULL) ? strtoul(sizeStr, NULL, 10) : 1;
+        commandStr = strtok(NULL, ",");
+        commandStr = (commandStr == NULL) ? "GET" : commandStr;
 
-	int64_t diff = ((actualGetCnt*(double)sampling_rate) - hist->totalCnt);
-	hist->sdHist[0] = hist -> sdHist[0] + diff;
-	// stack->totRef = stack->totRef + diff; //shards should only make change to the hist
-	hist->totalCnt = hist->totalCnt + diff;
+        if(strcmp(commandStr, "GET") == 0) actualGetCnt++;
+
+        struct timeval  tv1, tv2;
+        gettimeofday(&tv1, NULL);
+        
+        MurmurHash3_x64_128(keyStr, strlen(keyStr), seed, hash);
+        if ((unsigned long long)(hash[1] & (P-1)) < T) {
+            sd = access(stack, key, size, commandStr);
+
+            if (sd != INVALID) { 
+                sd = (sd != COLDMISS) ? sd / sampling_rate : sd;
+            
+                addToHist(hist,sd);
+            }
+        }
+
+        gettimeofday(&tv2, NULL);
+
+        if (timePtr != NULL) {
+            *timePtr += (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec);
+        }
+        
+
+        PROGRESS_BAR_UPDATE(bar);
+        
+    }
+
+
+
+    //vertical shift correction
+
+    int64_t diff = ((actualGetCnt*(double)sampling_rate) - hist->totalCnt);
+    hist->sdHist[0] = hist -> sdHist[0] + diff;
+    // stack->totRef = stack->totRef + diff; //shards should only make change to the hist
+    hist->totalCnt = hist->totalCnt + diff;
 
 }
 
@@ -109,210 +104,209 @@ void fixed_rate_spatial_sampling (FILE* 	rfd,
 
 
 void tw_fixed_rate_spatial_sampling(char* fileName,
-								  void* 	stack,
-								  access_func access,
-							 	  uint32_t 	seed,
-								  float 	sampling_rate,
-								  Hist_t* 	hist,
-								  double* 	timePtr){
+                                  void*     stack,
+                                  access_func access,
+                                  uint32_t  seed,
+                                  float     sampling_rate,
+                                  Hist_t*   hist,
+                                  double*   timePtr){
 
 
-	if (timePtr != NULL) *timePtr = 0;
-	struct timeval  tv1, tv2;
+    if (timePtr != NULL) *timePtr = 0;
+    struct timeval  tv1, tv2;
 
-	jy_32_srandom();
-	if(seed == 0) seed = jy_32_random(); //defined in this file
-	
-	fprintf(stdout,"seed: %u\n",seed );
-
-
-	// uint64_t total = 1003018062;
-	// COUNT_FILE_LINE(fileName, &total);
-	uint64_t processedCnt = 0;
-
-	// progress_bar_t* bar;
-	// PROGRESS_BAR_INIT(total, &bar);
+    jy_32_srandom();
+    if(seed == 0) seed = jy_32_random(); //defined in this file
+    
+    fprintf(stdout,"seed: %u\n",seed );
 
 
-	char* commandStr = NULL;
+    // uint64_t total = 1003018062;
+    // COUNT_FILE_LINE(fileName, &total);
+    uint64_t processedCnt = 0;
+
+    // progress_bar_t* bar;
+    // PROGRESS_BAR_INIT(total, &bar);
 
 
-	tw_iterator_t* itr = tw_trace_init(fileName, 10000, CONTINUE);
-	tw_ref_t* ref = NULL;
-
-	uint32_t size;
-	int64_t sd;
-	uint64_t actualGetCnt = 0;
-	uint64_t hash[2];     
-	uint64_t P = 1;
-	P = P << 24;
-	uint64_t T = (uint64_t)(P * sampling_rate); //truncate instead of round
-	
-	while (!tw_trace_finished(itr))
-	{
-		tw_ref_t* ref = tw_trace_next(itr);
-
-		// get/gets/set/add/replace/cas/append/prepend/delete/incr/decr
-		if (strcmp(ref->op, "get") == 0 //get
-		 || strcmp(ref->op, "gets") == 0) {
-			commandStr = "GET";
-		} else if ( //set
-			strcmp(ref->op, "set") == 0
-		 || strcmp(ref->op, "replace") == 0) {
-			commandStr = "SET";
-		} else if ( //update
-			strcmp(ref->op, "add") == 0
-		 || strcmp(ref->op, "cas") == 0
-		 || strcmp(ref->op, "append") == 0
-		 || strcmp(ref->op, "prepend") == 0
-		 || strcmp(ref->op, "incr") == 0
-		 || strcmp(ref->op, "decr") == 0) {
-			commandStr = "UPDATE";
-		} else if ( //delete
-			strcmp(ref->op, "delete") == 0) {
-			commandStr = "DELETE";
-		} else {
-			printf("command not recognized: %s\n",ref->op);
-			exit(-1);
-		}
-
-		if(strcmp(commandStr, "GET") == 0) actualGetCnt++;
-
-		size = ref->val_size + ref->key_size;
+    char* commandStr = NULL;
 
 
+    tw_iterator_t* itr = tw_trace_init(fileName, 10000, CONTINUE);
+    tw_ref_t* ref = NULL;
 
-		gettimeofday(&tv1, NULL);
-		
-		MurmurHash3_x64_128(ref->murmur3_hashed_key, 16, seed, hash);
-		
-		if ((unsigned long long)(hash[1] & (P-1)) < T) {
-		// printf("key :%llu, commandStr %s, size: %d\n",ref->murmur3_hashed_key[1], commandStr, size );
-			assert(size>0);
-			sd = access(stack, ref->murmur3_hashed_key[1], size, commandStr);
+    uint32_t size;
+    int64_t sd;
+    uint64_t actualGetCnt = 0;
+    uint64_t hash[2];     
+    uint64_t P = 1;
+    P = P << 24;
+    uint64_t T = (uint64_t)(P * sampling_rate); //truncate instead of round
+    
+    while (!tw_trace_finished(itr))
+    {
+        tw_ref_t* ref = tw_trace_next(itr);
 
-			if (sd != INVALID) { 
-				sd = (sd != COLDMISS) ? sd / sampling_rate : sd;
-				addToHist(hist,sd);
-			}
-		}
+        // get/gets/set/add/replace/cas/append/prepend/delete/incr/decr
+        if (strcmp(ref->op, "get") == 0 //get
+         || strcmp(ref->op, "gets") == 0) {
+            commandStr = "GET";
+        } else if ( //set
+            strcmp(ref->op, "set") == 0
+         || strcmp(ref->op, "replace") == 0) {
+            commandStr = "SET";
+        } else if ( //update
+            strcmp(ref->op, "add") == 0
+         || strcmp(ref->op, "cas") == 0
+         || strcmp(ref->op, "append") == 0
+         || strcmp(ref->op, "prepend") == 0
+         || strcmp(ref->op, "incr") == 0
+         || strcmp(ref->op, "decr") == 0) {
+            commandStr = "UPDATE";
+        } else if ( //delete
+            strcmp(ref->op, "delete") == 0) {
+            commandStr = "DELETE";
+        } else {
+            fprintf(stderr,"command not recognized: %s\n",ref->op);
+            exit(-1);
+        }
 
-		gettimeofday(&tv2, NULL);
+        if(strcmp(commandStr, "GET") == 0) actualGetCnt++;
 
-		if (timePtr != NULL) {
-			*timePtr += (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec);
-		}
-		
-		if(processedCnt % 1000000 == 0){
-			fprintf(stdout,"\rTotal Processed: %ld", processedCnt);  
-        	fflush(stdout);   
-		}
-		processedCnt++;
-		// PROGRESS_BAR_UPDATE(bar);
-		
-	}
-	fprintf(stdout,"\n");  
-	//vertical shift correction
+        size = ref->val_size + ref->key_size;
 
-	int64_t diff = ((actualGetCnt*(double)sampling_rate) - hist->totalCnt);
-	hist->sdHist[0] = hist -> sdHist[0] + diff;
-	// stack->totRef = stack->totRef + diff; //shards should only make change to the hist
-	hist->totalCnt = hist->totalCnt + diff;
+
+
+        gettimeofday(&tv1, NULL);
+        
+        MurmurHash3_x64_128(ref->murmur3_hashed_key, 16, seed, hash);
+        
+        if ((unsigned long long)(hash[1] & (P-1)) < T) {
+            assert(size>0);
+            sd = access(stack, ref->murmur3_hashed_key[1], size, commandStr);
+
+            if (sd != INVALID) { 
+                sd = (sd != COLDMISS) ? sd / sampling_rate : sd;
+                addToHist(hist,sd);
+            }
+        }
+
+        gettimeofday(&tv2, NULL);
+
+        if (timePtr != NULL) {
+            *timePtr += (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec);
+        }
+        
+        if(processedCnt % 1000000 == 0){
+            fprintf(stderr,"\rTotal Processed: %ld", processedCnt);  
+            fflush(stderr);   
+        }
+        processedCnt++;
+        // PROGRESS_BAR_UPDATE(bar);
+        
+    }
+    fprintf(stdout,"\n");  
+    //vertical shift correction
+
+    int64_t diff = ((actualGetCnt*(double)sampling_rate) - hist->totalCnt);
+    hist->sdHist[0] = hist -> sdHist[0] + diff;
+    // stack->totRef = stack->totRef + diff; //shards should only make change to the hist
+    hist->totalCnt = hist->totalCnt + diff;
 
 }
 
 void ycsb_fixed_rate_spatial_sampling(char* fileName,
-								  void* 	stack,
-								  access_func access,
-							 	  uint32_t 	seed,
-								  float 	sampling_rate,
-								  Hist_t* 	hist,
-								  double* 	timePtr){
+                                  void*     stack,
+                                  access_func access,
+                                  uint32_t  seed,
+                                  float     sampling_rate,
+                                  Hist_t*   hist,
+                                  double*   timePtr){
 
 
-	if (timePtr != NULL) *timePtr = 0;
+    if (timePtr != NULL) *timePtr = 0;
 
 
-	char *keyStr;
-	char *sizeStr;
-	char *commandStr = NULL;
-	uint32_t size;
-	uint64_t key;
-	int64_t sd;
-	char* ret;
-	char   line[1024];
-	char* tempLine;
+    char *keyStr;
+    char *sizeStr;
+    char *commandStr = NULL;
+    uint32_t size;
+    uint64_t key;
+    int64_t sd;
+    char* ret;
+    char   line[1024];
+    char* tempLine;
 
-	jy_32_srandom();
-	if(seed == 0) seed = jy_32_random(); //defined in this file
-	
-	fprintf(stdout,"seed: %u\n",seed );
+    jy_32_srandom();
+    if(seed == 0) seed = jy_32_random(); //defined in this file
+    
+    fprintf(stdout,"seed: %u\n",seed );
 
 
 
-	uint64_t total = 0;
-	COUNT_FILE_LINE(fileName, &total);
+    uint64_t total = 0;
+    COUNT_FILE_LINE(fileName, &total);
 
-	progress_bar_t* bar;
-	PROGRESS_BAR_INIT(total, &bar);
+    progress_bar_t* bar;
+    PROGRESS_BAR_INIT(total, &bar);
 
-	FILE* rfd;
-	if((rfd = fopen(fileName,"r")) == NULL)
-	{ perror("open error for read"); exit(-1); }
+    FILE* rfd;
+    if((rfd = fopen(fileName,"r")) == NULL)
+    { perror("open error for read"); exit(-1); }
 
-	uint64_t actualGetCnt = 0;
-	uint64_t hash[2];     
-	uint64_t P = 1;
-	P = P << 24;
-	uint64_t T = (uint64_t)(P * sampling_rate); //truncate instead of round
-	
-	uint64_t tempc = 0;
-	while ((ret=fgets(line, 1024, rfd)) != NULL)
-	{
-		tempLine = line;
+    uint64_t actualGetCnt = 0;
+    uint64_t hash[2];     
+    uint64_t P = 1;
+    P = P << 24;
+    uint64_t T = (uint64_t)(P * sampling_rate); //truncate instead of round
+    
+    uint64_t tempc = 0;
+    while ((ret=fgets(line, 1024, rfd)) != NULL)
+    {
+        tempLine = line;
 
-		keyStr = strsep(&tempLine, ","); 
-		if (strcmp(keyStr, "[OVERALL]") == 0) break;
+        keyStr = strsep(&tempLine, ","); 
+        if (strcmp(keyStr, "[OVERALL]") == 0) break;
         if (++tempc < 22) continue;
-		
-		key = strtoull(keyStr, NULL, 10);
-		sizeStr = strsep(&tempLine, ","); 
-		size = (sizeStr != NULL) ? strtoul(sizeStr, NULL, 10) : 1;
-		commandStr = strsep(&tempLine, "\n"); 
-		commandStr = (commandStr == NULL) ? "GET" : commandStr;
+        
+        key = strtoull(keyStr, NULL, 10);
+        sizeStr = strsep(&tempLine, ","); 
+        size = (sizeStr != NULL) ? strtoul(sizeStr, NULL, 10) : 1;
+        commandStr = strsep(&tempLine, "\n"); 
+        commandStr = (commandStr == NULL) ? "GET" : commandStr;
 
-		if(strcmp(commandStr, "GET") == 0) actualGetCnt++;
+        if(strcmp(commandStr, "GET") == 0) actualGetCnt++;
 
-		struct timeval  tv1, tv2;
-		gettimeofday(&tv1, NULL);
-		
-		MurmurHash3_x64_128(keyStr, strlen(keyStr), seed, hash);
-		if ((unsigned long long)(hash[1] & (P-1)) < T) {
-			sd = access(stack, key, size, commandStr);
+        struct timeval  tv1, tv2;
+        gettimeofday(&tv1, NULL);
+        
+        MurmurHash3_x64_128(keyStr, strlen(keyStr), seed, hash);
+        if ((unsigned long long)(hash[1] & (P-1)) < T) {
+            sd = access(stack, key, size, commandStr);
 
-			if (sd != INVALID) { 
-				sd = (sd != COLDMISS) ? sd / sampling_rate : sd;
-			
-				addToHist(hist,sd);
-			}
-		}
+            if (sd != INVALID) { 
+                sd = (sd != COLDMISS) ? sd / sampling_rate : sd;
+            
+                addToHist(hist,sd);
+            }
+        }
 
-		gettimeofday(&tv2, NULL);
+        gettimeofday(&tv2, NULL);
 
-		if (timePtr != NULL) {
-			*timePtr += (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec);
-		}
-		
+        if (timePtr != NULL) {
+            *timePtr += (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec);
+        }
+        
 
-		PROGRESS_BAR_UPDATE(bar);
-		
-	}
-	//vertical shift correction
+        PROGRESS_BAR_UPDATE(bar);
+        
+    }
+    //vertical shift correction
 
-	int64_t diff = ((actualGetCnt*(double)sampling_rate) - hist->totalCnt);
-	hist->sdHist[0] = hist -> sdHist[0] + diff;
-	// stack->totRef = stack->totRef + diff; //shards should only make change to the hist
-	hist->totalCnt = hist->totalCnt + diff;
+    int64_t diff = ((actualGetCnt*(double)sampling_rate) - hist->totalCnt);
+    hist->sdHist[0] = hist -> sdHist[0] + diff;
+    // stack->totRef = stack->totRef + diff; //shards should only make change to the hist
+    hist->totalCnt = hist->totalCnt + diff;
 
 }
 
