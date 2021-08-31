@@ -54,3 +54,5 @@ dkms.conf
 
 *.hist
 *.mrc
+mult-ops-uniform-KRR
+mult-ops-variable-KRR
