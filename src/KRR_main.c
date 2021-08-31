@@ -61,12 +61,12 @@ arg8: seed (optional)\n";
 	char* input_path = strdup(argv[1]);
 
 
-	sprintf(buf, "%s%s_back-stack_%d-lru_R%s_seed%u.mrc", argv[2], basename(input_path), k, argv[6],seed);
+	sprintf(buf, "%s%s_back-stack_%d-lru_R%s.mrc", argv[2], basename(input_path), k, argv[6]);
 	if((wfd = fopen(buf ,"w")) == NULL)
 	{ perror("open error for write"); return -1; }
 
 	buf[0] = '\0';
-	sprintf(buf, "%s%s_back-stack_%d-lru_R%s_seed%u.hist", argv[2], basename(input_path), k, argv[6],seed);
+	sprintf(buf, "%s%s_back-stack_%d-lru_R%s.hist", argv[2], basename(input_path), k, argv[6]);
 	if((histfd = fopen(buf ,"w")) == NULL)
 	{ perror("open error for write"); return -1; }
 	
@@ -108,11 +108,11 @@ arg8: seed (optional)\n";
 	
 	if(TIME_FLAG == 1){
 		#ifdef VARSIZE
-		fprintf(stdout, "back-KRR k= %s rate= %s file= %s TotalTime = %f seconds totalSize: %ld totalKey: %ld\n"
-			,argv[5],argv[6], basename(input_path) ,tt_time, stack->totalSize, stack->totalKey);
+		fprintf(stdout, "back-KRR k= %s rate= %s seed= %u file= %s TotalTime = %f seconds totalSize: %ld totalKey: %ld\n"
+			,argv[5],argv[6], seed, basename(input_path) ,tt_time, stack->totalSize, stack->totalKey);
 		#else
-		fprintf(stdout, "back-KRR k= %s rate= %s file= %s TotalTime = %f seconds\n"
-			,argv[5],argv[6], basename(input_path) ,tt_time);
+		fprintf(stdout, "back-KRR k= %s rate= %s seed= %u file= %s TotalTime = %f seconds\n"
+			,argv[5],argv[6], seed, basename(input_path) ,tt_time);
 		#endif
 	}
 	stackFree(stack);

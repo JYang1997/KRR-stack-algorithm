@@ -32,7 +32,7 @@ void fixed_rate_spatial_sampling (FILE*     rfd,
     jy_32_srandom();
     if(seed == 0) seed = jy_32_random(); //defined in this file
     
-    fprintf(stdout,"seed: %u\n",seed );
+    fprintf(stderr,"seed: %u\n",seed );
 
 
     ret = fgets(line, 256, rfd);
@@ -118,7 +118,7 @@ void tw_fixed_rate_spatial_sampling(char* fileName,
     jy_32_srandom();
     if(seed == 0) seed = jy_32_random(); //defined in this file
     
-    fprintf(stdout,"seed: %u\n",seed );
+    fprintf(stderr,"seed: %u\n",seed );
 
 
     // uint64_t total = 1003018062;
@@ -240,7 +240,7 @@ void ycsb_fixed_rate_spatial_sampling(char* fileName,
     jy_32_srandom();
     if(seed == 0) seed = jy_32_random(); //defined in this file
     
-    fprintf(stdout,"seed: %u\n",seed );
+    fprintf(stderr,"seed: %u\n",seed );
 
 
 
